@@ -80,7 +80,7 @@ void init(const char file_in[], const char file_out[]) {
     A/D converter etc) and put it in a suitable, numeric format. Return the
     sample, or NOSAMPLE if there are no more samples.
 */
-dataType input() {
+float input() {
   int num = NOSAMPLE;
   if (!feof(fin)) fscanf(fin, "%d", &num);
 
@@ -108,7 +108,7 @@ void panTompkins() {
   // arrays are the outputs of each filtering module: DC Block, low pass, high
   // pass, integral etc. The output is a buffer where we can change a previous
   // result (using a back search) before outputting.
-  dataType signal[BUFFSIZE], dcblock[BUFFSIZE], lowpass[BUFFSIZE],
+  float signal[BUFFSIZE], dcblock[BUFFSIZE], lowpass[BUFFSIZE],
       highpass[BUFFSIZE], derivative[BUFFSIZE], squared[BUFFSIZE],
       integral[BUFFSIZE], outputSignal[BUFFSIZE];
 
@@ -148,7 +148,7 @@ void panTompkins() {
   // ones. They're used for a back search when no peak is detected for too long.
   // The spk and npk variables are, respectively, running estimates of signal
   // and noise peaks.
-  dataType peak_i = 0, peak_f = 0, threshold_i1 = 0, threshold_i2 = 0,
+  float peak_i = 0, peak_f = 0, threshold_i1 = 0, threshold_i2 = 0,
            threshold_f1 = 0, threshold_f2 = 0, spk_i = 0, spk_f = 0, npk_i = 0,
            npk_f = 0;
 
@@ -243,12 +243,12 @@ void panTompkins() {
 
     integral[current] = 0;
     for (i = 0; i < WINDOWSIZE; i++) {
-      if (current >= (dataType)i)
+      if (current >= (float)i)
         integral[current] += squared[current - i];
       else
         break;
     }
-    integral[current] /= (dataType)i;
+    integral[current] /= (float)i;
 
     qrs = false;
 
@@ -277,7 +277,7 @@ void panTompkins() {
           for (j = current - 10; j <= current; j++)
             if (squared[j] > currentSlope) currentSlope = squared[j];
 
-          if (currentSlope <= (dataType)(lastSlope / 2)) {
+          if (currentSlope <= (float)(lastSlope / 2)) {
             qrs = false;
           }
 
@@ -389,7 +389,7 @@ void panTompkins() {
             for (j = i - 10; j <= i; j++)
               if (squared[j] > currentSlope) currentSlope = squared[j];
 
-            if ((currentSlope < (dataType)(lastSlope / 2)) &&
+            if ((currentSlope < (float)(lastSlope / 2)) &&
                 (i + sample) < lastQRS + 0.36 * lastQRS) {
               qrs = false;
             } else {
