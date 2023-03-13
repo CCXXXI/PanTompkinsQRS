@@ -1,4 +1,4 @@
 #pragma once
 
 void panTompkins();
-void init(char file_in[], char file_out[]);
+void init(const char* file_in, const char* file_out);

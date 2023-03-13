@@ -60,9 +60,11 @@
 
 #include "panTompkins.h"
 
-#include <cstdio>  // Remove if not using the standard file functions.
+#include <iostream>
+#include <fstream>
 
-FILE *fin, *fout;  // Remove them if not using files and <stdio.h>.
+std::ifstream fin;
+std::ofstream fout;
 
 /*
     Use this function for any kind of setup you need before getting samples.
@@ -70,9 +72,9 @@ FILE *fin, *fout;  // Remove them if not using files and <stdio.h>.
     a serial connection.
     Remember to update its parameters on the panTompkins.h file as well.
 */
-void init(const char file_in[], const char file_out[]) {
-  fin = fopen(file_in, "r");
-  fout = fopen(file_out, "w+");
+void init(const char* file_in, const char* file_out) {
+  fin = std::ifstream(file_in);
+  fout = std::ofstream(file_out);
 }
 
 /*
@@ -82,8 +84,7 @@ void init(const char file_in[], const char file_out[]) {
 */
 float input() {
   float num = NOSAMPLE;
-  if (!feof(fin)) fscanf(fin, "%f", &num);
-
+  fin >> num;
   return num;
 }
 
@@ -95,7 +96,7 @@ float input() {
    processing, such as feature extraction etc). Change its parameters to receive
    the necessary information to output.
 */
-void output(int out) { fprintf(fout, "%d\n", out); }
+void output(int out) { fout << out << std::endl; }
 
 /*
     This is the actual QRS-detecting function. It's a loop that constantly calls
@@ -488,8 +489,4 @@ void panTompkins() {
 
   // Output the last remaining samples on the buffer
   for (i = 1; i < BUFFSIZE; i++) output(outputSignal[i]);
-
-  // These last two lines must be deleted if you are not working with files.
-  fclose(fin);
-  fclose(fout);
 }
