@@ -120,7 +120,7 @@ void panTompkins() {
   // while rrhigh is the highest. rrmiss is the longest that it would be
   // expected until a new QRS is detected. If none is detected for such a long
   // interval, the thresholds must be adjusted.
-  int rr1[8], rr2[8], rravg1, rravg2, rrlow = 0, rrhigh = 0, rrmiss = 0;
+  int rr1[8], rr2[8], rravg1 = 0, rravg2 = 0, rrlow = 0, rrhigh = 0, rrmiss = 0;
 
   // i and j are iterators for loops.
   // sample counts how many samples have been read so far.
