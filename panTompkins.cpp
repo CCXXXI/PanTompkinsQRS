@@ -81,8 +81,8 @@ void init(const char file_in[], const char file_out[]) {
     sample, or NOSAMPLE if there are no more samples.
 */
 float input() {
-  int num = NOSAMPLE;
-  if (!feof(fin)) fscanf(fin, "%d", &num);
+  float num = NOSAMPLE;
+  if (!feof(fin)) fscanf(fin, "%f", &num);
 
   return num;
 }
