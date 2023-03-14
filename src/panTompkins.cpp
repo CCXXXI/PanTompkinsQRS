@@ -40,23 +40,23 @@
 
 // Integrator window size, in samples. The article recommends 150ms. So,
 // FS*0.15. However, you should check empirically if the waveform looks ok.
-#define WINDOWSIZE 20
+constexpr int WINDOWSIZE = 20;
 
 // An indicator that there are no more samples to read. Use an
 // impossible value for a sample.
-#define NOSAMPLE (-32000)
+constexpr int NOSAMPLE = -32000;
 
 // Sampling frequency.
-#define FS 360
+constexpr int FS = 360;
 
 // The size of the buffers (in samples). Must fit more than 1.66 times an
 // RR interval, which typically could be around 1 second.
-#define BUFFSIZE 600
+constexpr int BUFFSIZE = 600;
 
 // Delay introduced by the filters. Filter only output samples after this
 // one. Set to 0 if you want to keep the delay. Fixing the delay results
 // in DELAY less samples in the final end result.
-#define DELAY 22
+constexpr int DELAY = 22;
 
 #include "panTompkins.h"
 
