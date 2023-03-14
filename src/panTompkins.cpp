@@ -11,25 +11,25 @@
  * whether a peak was detected or not.                                           *
  *                                                                               *
  * On panTompkins.c:                                                             *
- * - #define WINDOWSIZE                                                          *
+ * - #define window_size                                                          *
  * Defines the size of the integration window. The original authors suggest on   *
  * their 1985 paper a 150ms window.                                              *
  *                                                                               *
- * - #define FS                                                                  *
+ * - #define fs                                                                  *
  * Defines the sampling frequency.                                               *
  *                                                                               *
- * - #define NOSAMPLE                                                            *
+ * - #define no_sample                                                            *
  * A value to indicate you don't have any more samples to read. Choose a value   *
  * which a sample couldn't possibly have (e.g.: a negative value if your A/D con-*
  * verter only works with positive integers).                                    *
  *                                                                               *
- * - #define BUFFSIZE                                                            *
+ * - #define buffer_size                                                            *
  * The size of the signal buffers. It should fit at least 1.66 times an RR-inter-*
  * val. Heart beats should be between 60 and 80 BPS for humans. So, considering  *
  * 1.66 times 1 second should be safe.                                           *
  *                                                                               *
- * - #define DELAY 22                                                            *
- * The delay introduced to the output signal. The first DELAY samples will be ig-*
+ * - #define delay 22                                                            *
+ * The delay introduced to the output signal. The first delay samples will be ig-*
  * nored, as the filters add a delay to the output signal, causing a mismatch    *
  * between the input and output signals. It's easier to compare them this way.   *
  * If you need them both to have the same amount of samples, set this to 0. If   *
@@ -39,24 +39,24 @@
  */
 
 // Integrator window size, in samples. The article recommends 150ms. So,
-// FS*0.15. However, you should check empirically if the waveform looks ok.
-constexpr int WINDOWSIZE = 20;
+// fs*0.15. However, you should check empirically if the waveform looks ok.
+constexpr int window_size = 20;
 
 // An indicator that there are no more samples to read. Use an
 // impossible value for a sample.
-constexpr int NOSAMPLE = -32000;
+constexpr int no_sample = -32000;
 
 // Sampling frequency.
-constexpr int FS = 360;
+constexpr int fs = 360;
 
 // The size of the buffers (in samples). Must fit more than 1.66 times an
 // RR interval, which typically could be around 1 second.
-constexpr int BUFFSIZE = 600;
+constexpr int buffer_size = 600;
 
 // Delay introduced by the filters. Filter only output samples after this
 // one. Set to 0 if you want to keep the delay. Fixing the delay results
-// in DELAY less samples in the final end result.
-constexpr int DELAY = 22;
+// in delay less samples in the final end result.
+constexpr int delay = 22;
 
 #include "panTompkins.h"
 
@@ -80,10 +80,10 @@ void init(const char* file_in, const char* file_out) {
 /*
     Use this function to read and return the next sample (from file, serial,
     A/D converter etc) and put it in a suitable, numeric format. Return the
-    sample, or NOSAMPLE if there are no more samples.
+    sample, or no_sample if there are no more samples.
 */
 float input() {
-  float num = NOSAMPLE;
+  float num = no_sample;
   fin >> num;
   return num;
 }
@@ -109,9 +109,9 @@ void panTompkins() {
   // arrays are the outputs of each filtering module: DC Block, low pass, high
   // pass, integral etc. The output is a buffer where we can change a previous
   // result (using a back search) before outputting.
-  float signal[BUFFSIZE], dcblock[BUFFSIZE], lowpass[BUFFSIZE],
-      highpass[BUFFSIZE], derivative[BUFFSIZE], squared[BUFFSIZE],
-      integral[BUFFSIZE], outputSignal[BUFFSIZE];
+  float signal[buffer_size], dcblock[buffer_size], lowpass[buffer_size],
+      highpass[buffer_size], derivative[buffer_size], squared[buffer_size],
+      integral[buffer_size], outputSignal[buffer_size];
 
   // rr1 holds the last 8 RR intervals. rr2 holds the last 8 RR intervals
   // between rrlow and rrhigh. rravg1 is the rr1 average, rr2 is the rravg2.
@@ -173,8 +173,8 @@ void panTompkins() {
     // one at the end. Else, just put the newest sample in the next free
     // position. Update 'current' so that the program knows where's the newest
     // sample.
-    if (sample >= BUFFSIZE) {
-      for (i = 0; i < BUFFSIZE - 1; i++) {
+    if (sample >= buffer_size) {
+      for (i = 0; i < buffer_size - 1; i++) {
         signal[i] = signal[i + 1];
         dcblock[i] = dcblock[i + 1];
         lowpass[i] = lowpass[i + 1];
@@ -184,14 +184,14 @@ void panTompkins() {
         integral[i] = integral[i + 1];
         outputSignal[i] = outputSignal[i + 1];
       }
-      current = BUFFSIZE - 1;
+      current = buffer_size - 1;
     } else {
       current = sample;
     }
     signal[current] = input();
 
     // If no sample was read, stop processing!
-    if (signal[current] == NOSAMPLE) break;
+    if (signal[current] == no_sample) break;
     sample++;  // Update sample counter
 
     // DC Block filter
@@ -240,10 +240,10 @@ void panTompkins() {
     // Moving-Window Integration
     // Implemented as proposed by the original paper.
     // y(nT) = (1/N)[x(nT - (N - 1)T) + x(nT - (N - 2)T) + ... x(nT)]
-    // WINDOWSIZE, in samples, must be defined so that the window is ~150ms.
+    // window_size, in samples, must be defined so that the window is ~150ms.
 
     integral[current] = 0;
-    for (i = 0; i < WINDOWSIZE; i++) {
+    for (i = 0; i < window_size; i++) {
       if (current >= (float)i)
         integral[current] += squared[current - i];
       else
@@ -267,10 +267,10 @@ void panTompkins() {
         (highpass[current] >= threshold_f1)) {
       // There's a 200ms latency. If the new peak respects this condition, we
       // can keep testing.
-      if (sample > lastQRS + FS / 5) {
+      if (sample > lastQRS + fs / 5) {
         // If it respects the 200ms latency, but it doesn't respect the 360ms
         // latency, we check the slope.
-        if (sample <= lastQRS + (long unsigned int)(0.36 * FS)) {
+        if (sample <= lastQRS + (long unsigned int)(0.36 * fs)) {
           // The squared slope is "M" shaped. So we have to check nearby samples
           // to make sure we're really looking at its peak value, rather than a
           // low one.
@@ -327,7 +327,7 @@ void panTompkins() {
         threshold_f2 = 0.5 * threshold_f1;
         qrs = false;
         outputSignal[current] = qrs;
-        if (sample > DELAY + BUFFSIZE) output(outputSignal[0]);
+        if (sample > delay + buffer_size) output(outputSignal[0]);
         continue;
       }
     }
@@ -382,8 +382,8 @@ void panTompkins() {
       // do a back search. However, the back search must respect the 200ms limit
       // and the 360ms one (check the slope).
       if ((sample - lastQRS > (long unsigned int)rrmiss) &&
-          (sample > lastQRS + FS / 5)) {
-        for (i = current - (sample - lastQRS) + FS / 5;
+          (sample > lastQRS + fs / 5)) {
+        for (i = current - (sample - lastQRS) + fs / 5;
              i < (long unsigned int)current; i++) {
           if ((integral[i] > threshold_i2) && (highpass[i] > threshold_f2)) {
             currentSlope = 0;
@@ -452,7 +452,7 @@ void panTompkins() {
         if (qrs) {
           outputSignal[current] = false;
           outputSignal[i] = true;
-          if (sample > DELAY + BUFFSIZE) output(outputSignal[0]);
+          if (sample > delay + buffer_size) output(outputSignal[0]);
           continue;
         }
       }
@@ -484,9 +484,9 @@ void panTompkins() {
     // thresholds. The final waveform output does match the original signal,
     // though.
     outputSignal[current] = qrs;
-    if (sample > DELAY + BUFFSIZE) output(outputSignal[0]);
-  } while (signal[current] != NOSAMPLE);
+    if (sample > delay + buffer_size) output(outputSignal[0]);
+  } while (signal[current] != no_sample);
 
   // Output the last remaining samples on the buffer
-  for (i = 1; i < BUFFSIZE; i++) output(outputSignal[i]);
+  for (i = 1; i < buffer_size; i++) output(outputSignal[i]);
 }
