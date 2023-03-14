@@ -1,42 +1,7 @@
-/**
- * Here's what you should change to adjust the code to your needs:               *
- *                                                                               *
- * On both panTompkins.h and panTompkins.c:                                      *
- * - void init(char file_in[], char file_out[]);                                 *
- * This function is meant to do any kind of initial setup, such as starting a    *
- * serial connection with an ECG sensor. Change its parameters to whatever info  *
- * you need and its content. The test version included here loads 2 plain text   *
- * files: an input file, with the signal as a list of integer numbers in ASCII   *
- * format and an output file where either 0 or 1 will be written for each sample,*
- * whether a peak was detected or not.                                           *
- *                                                                               *
- * On panTompkins.c:                                                             *
- * - #define window_size                                                          *
- * Defines the size of the integration window. The original authors suggest on   *
- * their 1985 paper a 150ms window.                                              *
- *                                                                               *
- * - #define fs                                                                  *
- * Defines the sampling frequency.                                               *
- *                                                                               *
- * - #define no_sample                                                            *
- * A value to indicate you don't have any more samples to read. Choose a value   *
- * which a sample couldn't possibly have (e.g.: a negative value if your A/D con-*
- * verter only works with positive integers).                                    *
- *                                                                               *
- * - #define buffer_size                                                            *
- * The size of the signal buffers. It should fit at least 1.66 times an RR-inter-*
- * val. Heart beats should be between 60 and 80 BPS for humans. So, considering  *
- * 1.66 times 1 second should be safe.                                           *
- *                                                                               *
- * - #define delay 22                                                            *
- * The delay introduced to the output signal. The first delay samples will be ig-*
- * nored, as the filters add a delay to the output signal, causing a mismatch    *
- * between the input and output signals. It's easier to compare them this way.   *
- * If you need them both to have the same amount of samples, set this to 0. If   *
- * you're working with different filters and/or sampling rates, you might need to*
- * adjust this value.                                                            *
- *-------------------------------------------------------------------------------*
- */
+#include "panTompkins.h"
+
+#include <fstream>
+#include <iostream>
 
 // Integrator window size, in samples. The article recommends 150ms. So,
 // fs*0.15. However, you should check empirically if the waveform looks ok.
@@ -57,11 +22,6 @@ constexpr int buffer_size = 600;
 // one. Set to 0 if you want to keep the delay. Fixing the delay results
 // in delay less samples in the final end result.
 constexpr int delay = 22;
-
-#include "panTompkins.h"
-
-#include <iostream>
-#include <fstream>
 
 std::ifstream fin;
 std::ofstream fout;
@@ -150,8 +110,8 @@ void panTompkins() {
   // The spk and npk variables are, respectively, running estimates of signal
   // and noise peaks.
   float peak_i = 0, peak_f = 0, threshold_i1 = 0, threshold_i2 = 0,
-           threshold_f1 = 0, threshold_f2 = 0, spk_i = 0, spk_f = 0, npk_i = 0,
-           npk_f = 0;
+        threshold_f1 = 0, threshold_f2 = 0, spk_i = 0, spk_f = 0, npk_i = 0,
+        npk_f = 0;
 
   // qrs tells whether there was a detection or not.
   // regular tells whether the heart pace is regular or not.
