@@ -1,22 +1,22 @@
 #include "panTompkins.h"
 
 #include <fstream>
-#include <iostream>
-
-// Integrator window size, in samples. The article recommends 150ms. So,
-// fs*0.15. However, you should check empirically if the waveform looks ok.
-constexpr int window_size = 20;
-
-// An indicator that there are no more samples to read. Use an
-// impossible value for a sample.
-constexpr int no_sample = -32000;
+#include <numeric>
 
 // Sampling frequency.
 constexpr int fs = 360;
 
+// Integrator window size, in samples. The article recommends 150ms. So,
+// fs*0.15. However, you should check empirically if the waveform looks ok.
+constexpr int window_size = fs * 0.15;
+
+// An indicator that there are no more samples to read. Use an
+// impossible value for a sample.
+constexpr float no_sample = std::numeric_limits<float>::infinity();
+
 // The size of the buffers (in samples). Must fit more than 1.66 times an
 // RR interval, which typically could be around 1 second.
-constexpr int buffer_size = 600;
+constexpr int buffer_size = fs * 2;
 
 // Delay introduced by the filters. Filter only output samples after this
 // one. Set to 0 if you want to keep the delay. Fixing the delay results
