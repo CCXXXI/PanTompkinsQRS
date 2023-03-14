@@ -1,77 +1,55 @@
 #include "panTompkins.h"
 
-#include <fstream>
 #include <numeric>
+#include <optional>
+#include <vector>
 
-// Sampling frequency.
-constexpr int fs = 360;
+class PanTompkins {
+ public:
+  PanTompkins(const int fs) : fs(fs) {
+    signal.resize(buffer_size);
+    dcblock.resize(buffer_size);
+    lowpass.resize(buffer_size);
+    highpass.resize(buffer_size);
+    derivative.resize(buffer_size);
+    squared.resize(buffer_size);
+    integral.resize(buffer_size);
+    outputSignal.resize(buffer_size);
 
-// Integrator window size, in samples. The article recommends 150ms. So,
-// fs*0.15. However, you should check empirically if the waveform looks ok.
-constexpr int window_size = fs * 0.15;
+    // Initializing the RR averages
+    for (i = 0; i < 8; i++) {
+      rr1[i] = 0;
+      rr2[i] = 0;
+    }
+  }
 
-// An indicator that there are no more samples to read. Use an
-// impossible value for a sample.
-constexpr float no_sample = std::numeric_limits<float>::infinity();
+ private:
+  // Sampling frequency.
+  const int fs;
 
-// The size of the buffers (in samples). Must fit more than 1.66 times an
-// RR interval, which typically could be around 1 second.
-constexpr int buffer_size = fs * 2;
+  // Integrator window size, in samples. The article recommends 150ms. So,
+  // fs*0.15. However, you should check empirically if the waveform looks ok.
+  const int window_size = fs * 0.15;
 
-// Delay introduced by the filters. Filter only output samples after this
-// one. Set to 0 if you want to keep the delay. Fixing the delay results
-// in delay less samples in the final end result.
-constexpr int delay = 22;
+  // An indicator that there are no more samples to read. Use an
+  // impossible value for a sample.
+  static constexpr float no_sample = std::numeric_limits<float>::infinity();
 
-std::ifstream fin;
-std::ofstream fout;
+  // The size of the buffers (in samples). Must fit more than 1.66 times an
+  // RR interval, which typically could be around 1 second.
+  const int buffer_size = fs * 2;
 
-/*
-    Use this function for any kind of setup you need before getting samples.
-    This is a good place to open a file, initialize your hardware and/or open
-    a serial connection.
-    Remember to update its parameters on the panTompkins.h file as well.
-*/
-void init(const char* file_in, const char* file_out) {
-  fin = std::ifstream(file_in);
-  fout = std::ofstream(file_out);
-}
+  // Delay introduced by the filters. Filter only output samples after this
+  // one. Set to 0 if you want to keep the delay. Fixing the delay results
+  // in delay less samples in the final end result.
+  static constexpr int delay = 22;
 
-/*
-    Use this function to read and return the next sample (from file, serial,
-    A/D converter etc) and put it in a suitable, numeric format. Return the
-    sample, or no_sample if there are no more samples.
-*/
-float input() {
-  float num = no_sample;
-  fin >> num;
-  return num;
-}
-
-/*
-    Use this function to output the information you see fit (last RR-interval,
-    sample index which triggered a peak detection, whether each sample was a R
-    peak (1) or not (0) etc), in whatever way you see fit (write on screen,
-   write on file, blink a LED, call other functions to do other kinds of
-   processing, such as feature extraction etc). Change its parameters to receive
-   the necessary information to output.
-*/
-void output(int out) { fout << out << std::endl; }
-
-/*
-    This is the actual QRS-detecting function. It's a loop that constantly calls
-   the input and output functions and updates the thresholds and averages until
-   there are no more samples. More details both above and in shorter comments
-   below.
-*/
-void panTompkins() {
   // The signal array is where the most recent samples are kept. The other
   // arrays are the outputs of each filtering module: DC Block, low pass, high
   // pass, integral etc. The output is a buffer where we can change a previous
   // result (using a back search) before outputting.
-  float signal[buffer_size], dcblock[buffer_size], lowpass[buffer_size],
-      highpass[buffer_size], derivative[buffer_size], squared[buffer_size],
-      integral[buffer_size], outputSignal[buffer_size];
+  std::vector<float> signal, dcblock, lowpass, highpass, derivative, squared,
+      integral, outputSignal;
 
   // rr1 holds the last 8 RR intervals. rr2 holds the last 8 RR intervals
   // between rrlow and rrhigh. rravg1 is the rr1 average, rr2 is the rravg2.
@@ -85,18 +63,17 @@ void panTompkins() {
   // i and j are iterators for loops.
   // sample counts how many samples have been read so far.
   // lastQRS stores which was the last sample read when the last R sample was
-  // triggered. lastSlope stores the value of the squared slope when the last R
-  // sample was triggered. currentSlope helps calculate the max. square slope
-  // for the present sample. These are all long unsigned int so that very long
-  // signals can be read without messing the count.
-  long unsigned int i, j, sample = 0, lastQRS = 0, lastSlope = 0,
-                          currentSlope;
+  // triggered. lastSlope stores the value of the squared slope when the last
+  // R sample was triggered. currentSlope helps calculate the max. square
+  // slope for the present sample. These are all long unsigned int so that
+  // very long signals can be read without messing the count.
+  long unsigned int i, j, sample = 0, lastQRS = 0, lastSlope = 0, currentSlope;
 
   // This variable is used as an index to work with the signal buffers. If the
-  // buffers still aren't completely filled, it shows the last filled position.
-  // Once the buffers are full, it'll always show the last position, and new
-  // samples will make the buffers shift, discarding the oldest sample and
-  // storing the newest one on the last position.
+  // buffers still aren't completely filled, it shows the last filled
+  // position. Once the buffers are full, it'll always show the last position,
+  // and new samples will make the buffers shift, discarding the oldest sample
+  // and storing the newest one on the last position.
   int current;
 
   // There are the variables from the original Pan-Tompkins algorithm.
@@ -105,10 +82,10 @@ void panTompkins() {
   // DC-block/low-pass/high-pass filtered signal. The peak variables are peak
   // candidates: signal values above the thresholds. The threshold 1 variables
   // are the threshold variables. If a signal sample is higher than this
-  // threshold, it's a peak. The threshold 2 variables are half the threshold 1
-  // ones. They're used for a back search when no peak is detected for too long.
-  // The spk and npk variables are, respectively, running estimates of signal
-  // and noise peaks.
+  // threshold, it's a peak. The threshold 2 variables are half the threshold
+  // 1 ones. They're used for a back search when no peak is detected for too
+  // long. The spk and npk variables are, respectively, running estimates of
+  // signal and noise peaks.
   float peak_i = 0, peak_f = 0, threshold_i1 = 0, threshold_i2 = 0,
         threshold_f1 = 0, threshold_f2 = 0, spk_i = 0, spk_f = 0, npk_i = 0,
         npk_f = 0;
@@ -119,18 +96,11 @@ void panTompkins() {
   // RR-interval was calculated.
   bool qrs, regular = true, prevRegular;
 
-  // Initializing the RR averages
-  for (i = 0; i < 8; i++) {
-    rr1[i] = 0;
-    rr2[i] = 0;
-  }
-
-  // The main loop where everything proposed in the paper happens. Ends when
-  // there are no more signal samples.
-  do {
+ public:
+  bool panTompkins(float input) {
     // Test if the buffers are full.
-    // If they are, shift them, discarding the oldest sample and adding the new
-    // one at the end. Else, just put the newest sample in the next free
+    // If they are, shift them, discarding the oldest sample and adding the
+    // new one at the end. Else, just put the newest sample in the next free
     // position. Update 'current' so that the program knows where's the newest
     // sample.
     if (sample >= buffer_size) {
@@ -148,16 +118,14 @@ void panTompkins() {
     } else {
       current = sample;
     }
-    signal[current] = input();
+    signal[current] = input;
 
-    // If no sample was read, stop processing!
-    if (signal[current] == no_sample) break;
     sample++;  // Update sample counter
 
     // DC Block filter
     // This was not proposed on the original paper.
-    // It is not necessary and can be removed if your sensor or database has no
-    // DC noise.
+    // It is not necessary and can be removed if your sensor or database has
+    // no DC noise.
     if (current >= 1)
       dcblock[current] =
           signal[current] - signal[current - 1] + 0.995 * dcblock[current - 1];
@@ -204,7 +172,7 @@ void panTompkins() {
 
     integral[current] = 0;
     for (i = 0; i < window_size; i++) {
-      if (current >= (float)i)
+      if (current >= i)
         integral[current] += squared[current - i];
       else
         break;
@@ -231,9 +199,9 @@ void panTompkins() {
         // If it respects the 200ms latency, but it doesn't respect the 360ms
         // latency, we check the slope.
         if (sample <= lastQRS + (long unsigned int)(0.36 * fs)) {
-          // The squared slope is "M" shaped. So we have to check nearby samples
-          // to make sure we're really looking at its peak value, rather than a
-          // low one.
+          // The squared slope is "M" shaped. So we have to check nearby
+          // samples to make sure we're really looking at its peak value,
+          // rather than a low one.
           currentSlope = 0;
           for (j = current - 10; j <= current; j++)
             if (squared[j] > currentSlope) currentSlope = squared[j];
@@ -255,8 +223,8 @@ void panTompkins() {
             qrs = true;
           }
         }
-        // If it was above both thresholds and respects both latency periods, it
-        // certainly is a R peak.
+        // If it was above both thresholds and respects both latency periods,
+        // it certainly is a R peak.
         else {
           currentSlope = 0;
           for (j = current - 10; j <= current; j++)
@@ -287,8 +255,9 @@ void panTompkins() {
         threshold_f2 = 0.5 * threshold_f1;
         qrs = false;
         outputSignal[current] = qrs;
-        if (sample > delay + buffer_size) output(outputSignal[0]);
-        continue;
+        if (sample > delay + buffer_size) {
+          return outputSignal[0];
+        }
       }
     }
 
@@ -338,9 +307,9 @@ void panTompkins() {
     // If no R-peak was detected, it's important to check how long it's been
     // since the last detection.
     else {
-      // If no R-peak was detected for too long, use the lighter thresholds and
-      // do a back search. However, the back search must respect the 200ms limit
-      // and the 360ms one (check the slope).
+      // If no R-peak was detected for too long, use the lighter thresholds
+      // and do a back search. However, the back search must respect the 200ms
+      // limit and the 360ms one (check the slope).
       if ((sample - lastQRS > (long unsigned int)rrmiss) &&
           (sample > lastQRS + fs / 5)) {
         for (i = current - (sample - lastQRS) + fs / 5;
@@ -364,9 +333,8 @@ void panTompkins() {
               threshold_f1 = npk_f + 0.25 * (spk_f - npk_f);
               threshold_f2 = 0.5 * threshold_f1;
               // If a signal peak was detected on the back search, the RR
-              // attributes must be updated. This is the same thing done when a
-              // peak is detected on the first try.
-              // RR Average 1
+              // attributes must be updated. This is the same thing done when
+              // a peak is detected on the first try. RR Average 1
               rravg1 = 0;
               for (j = 0; j < 7; j++) {
                 rr1[j] = rr1[j + 1];
@@ -412,8 +380,9 @@ void panTompkins() {
         if (qrs) {
           outputSignal[current] = false;
           outputSignal[i] = true;
-          if (sample > delay + buffer_size) output(outputSignal[0]);
-          continue;
+          if (sample > delay + buffer_size) {
+            return outputSignal[0];
+          }
         }
       }
 
@@ -434,19 +403,23 @@ void panTompkins() {
         }
       }
     }
-    // The current implementation outputs '0' for every sample where no peak was
-    // detected, and '1' for every sample where a peak was detected. It should
-    // be changed to fit the desired application. The 'if' accounts for the
-    // delay introduced by the filters: we only start outputting after the
-    // delay. However, it updates a few samples back from the buffer. The reason
-    // is that if we update the detection for the current sample, we might miss
-    // a peak that could've been found later by backsearching using lighter
-    // thresholds. The final waveform output does match the original signal,
-    // though.
+    // The current implementation outputs '0' for every sample where no peak
+    // was detected, and '1' for every sample where a peak was detected. It
+    // should be changed to fit the desired application. The 'if' accounts for
+    // the delay introduced by the filters: we only start outputting after the
+    // delay. However, it updates a few samples back from the buffer. The
+    // reason is that if we update the detection for the current sample, we
+    // might miss a peak that could've been found later by backsearching using
+    // lighter thresholds. The final waveform output does match the original
+    // signal, though.
     outputSignal[current] = qrs;
-    if (sample > delay + buffer_size) output(outputSignal[0]);
-  } while (signal[current] != no_sample);
+    if (sample > delay + buffer_size) return outputSignal[0];
 
-  // Output the last remaining samples on the buffer
-  for (i = 1; i < buffer_size; i++) output(outputSignal[i]);
-}
+    return false;
+  }
+};
+
+std::optional<PanTompkins> p;
+
+void init(int fs) { p.emplace(fs); }
+bool panTompkins(float sample) { return p->panTompkins(sample); }
