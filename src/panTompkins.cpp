@@ -80,7 +80,7 @@ void panTompkins() {
   // while rrhigh is the highest. rrmiss is the longest that it would be
   // expected until a new QRS is detected. If none is detected for such a long
   // interval, the thresholds must be adjusted.
-  int rr1[8], rr2[8], rravg1 = 0, rravg2 = 0, rrlow = 0, rrhigh = 0, rrmiss = 0;
+  int rr1[8], rr2[8], rravg1, rravg2 = 0, rrlow = 0, rrhigh = 0, rrmiss = 0;
 
   // i and j are iterators for loops.
   // sample counts how many samples have been read so far.
@@ -90,7 +90,7 @@ void panTompkins() {
   // for the present sample. These are all long unsigned int so that very long
   // signals can be read without messing the count.
   long unsigned int i, j, sample = 0, lastQRS = 0, lastSlope = 0,
-                          currentSlope = 0;
+                          currentSlope;
 
   // This variable is used as an index to work with the signal buffers. If the
   // buffers still aren't completely filled, it shows the last filled position.
