@@ -22,10 +22,10 @@ class PanTompkins {
     }
   }
 
- private:
   // Sampling frequency.
   const int fs;
 
+ private:
   // Integrator window size, in samples. The article recommends 150ms. So,
   // fs*0.15. However, you should check empirically if the waveform looks ok.
   const int window_size = fs * 0.15;
@@ -411,5 +411,8 @@ class PanTompkins {
 
 std::optional<PanTompkins> p;
 
-void init(int fs) { p.emplace(fs); }
+void init(int fs) {
+  if (p && p->fs == fs) return;
+  p.emplace(fs);
+}
 bool panTompkins(float sample) { return p->panTompkins(sample); }
