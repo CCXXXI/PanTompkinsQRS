@@ -1,6 +1,5 @@
 #include "panTompkins.h"
 
-#include <numeric>
 #include <optional>
 #include <vector>
 
@@ -23,26 +22,17 @@ class PanTompkins {
     }
   }
 
- private:
   // Sampling frequency.
   const int fs;
 
+ private:
   // Integrator window size, in samples. The article recommends 150ms. So,
   // fs*0.15. However, you should check empirically if the waveform looks ok.
   const int window_size = fs * 0.15;
 
-  // An indicator that there are no more samples to read. Use an
-  // impossible value for a sample.
-  static constexpr float no_sample = std::numeric_limits<float>::infinity();
-
   // The size of the buffers (in samples). Must fit more than 1.66 times an
   // RR interval, which typically could be around 1 second.
   const int buffer_size = fs * 2;
-
-  // Delay introduced by the filters. Filter only output samples after this
-  // one. Set to 0 if you want to keep the delay. Fixing the delay results
-  // in delay less samples in the final end result.
-  static constexpr int delay = 22;
 
   // The signal array is where the most recent samples are kept. The other
   // arrays are the outputs of each filtering module: DC Block, low pass, high
@@ -255,7 +245,7 @@ class PanTompkins {
         threshold_f2 = 0.5 * threshold_f1;
         qrs = false;
         outputSignal[current] = qrs;
-        if (sample > delay + buffer_size) {
+        if (sample > buffer_size) {
           return outputSignal[0];
         }
       }
@@ -380,7 +370,7 @@ class PanTompkins {
         if (qrs) {
           outputSignal[current] = false;
           outputSignal[i] = true;
-          if (sample > delay + buffer_size) {
+          if (sample > buffer_size) {
             return outputSignal[0];
           }
         }
@@ -413,7 +403,7 @@ class PanTompkins {
     // lighter thresholds. The final waveform output does match the original
     // signal, though.
     outputSignal[current] = qrs;
-    if (sample > delay + buffer_size) return outputSignal[0];
+    if (sample > buffer_size) return outputSignal[0];
 
     return false;
   }
@@ -421,5 +411,26 @@ class PanTompkins {
 
 std::optional<PanTompkins> p;
 
-void init(int fs) { p.emplace(fs); }
-bool panTompkins(float sample) { return p->panTompkins(sample); }
+void init(int fs) {
+  if (p && p->fs == fs) return;
+  p.emplace(fs);
+}
+
+bool panTompkins(float sample) {
+  // The algorithm sometimes outputs a peak multiple times.
+  // This is a simple fix to avoid that.
+  static int samples_since_last_qrs = std::numeric_limits<int>::max() / 2;
+
+  // With fs=125, this is 80ms.
+  // Two QRSs in 80ms means at least 750bpm. That's impossible.
+  static constexpr int min_samples_between_qrs = 10;
+
+  if (p->panTompkins(sample) &&
+      samples_since_last_qrs > min_samples_between_qrs) {
+    samples_since_last_qrs = 0;
+    return true;
+  } else {
+    ++samples_since_last_qrs;
+    return false;
+  }
+}
