@@ -1,6 +1,5 @@
 #include "panTompkins.h"
 
-#include <numeric>
 #include <optional>
 #include <vector>
 
@@ -30,10 +29,6 @@ class PanTompkins {
   // Integrator window size, in samples. The article recommends 150ms. So,
   // fs*0.15. However, you should check empirically if the waveform looks ok.
   const int window_size = fs * 0.15;
-
-  // An indicator that there are no more samples to read. Use an
-  // impossible value for a sample.
-  static constexpr float no_sample = std::numeric_limits<float>::infinity();
 
   // The size of the buffers (in samples). Must fit more than 1.66 times an
   // RR interval, which typically could be around 1 second.
