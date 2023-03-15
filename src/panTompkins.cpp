@@ -34,11 +34,6 @@ class PanTompkins {
   // RR interval, which typically could be around 1 second.
   const int buffer_size = fs * 2;
 
-  // Delay introduced by the filters. Filter only output samples after this
-  // one. Set to 0 if you want to keep the delay. Fixing the delay results
-  // in delay less samples in the final end result.
-  static constexpr int delay = 22;
-
   // The signal array is where the most recent samples are kept. The other
   // arrays are the outputs of each filtering module: DC Block, low pass, high
   // pass, integral etc. The output is a buffer where we can change a previous
@@ -250,7 +245,7 @@ class PanTompkins {
         threshold_f2 = 0.5 * threshold_f1;
         qrs = false;
         outputSignal[current] = qrs;
-        if (sample > delay + buffer_size) {
+        if (sample > buffer_size) {
           return outputSignal[0];
         }
       }
@@ -375,7 +370,7 @@ class PanTompkins {
         if (qrs) {
           outputSignal[current] = false;
           outputSignal[i] = true;
-          if (sample > delay + buffer_size) {
+          if (sample > buffer_size) {
             return outputSignal[0];
           }
         }
@@ -408,7 +403,7 @@ class PanTompkins {
     // lighter thresholds. The final waveform output does match the original
     // signal, though.
     outputSignal[current] = qrs;
-    if (sample > delay + buffer_size) return outputSignal[0];
+    if (sample > buffer_size) return outputSignal[0];
 
     return false;
   }
