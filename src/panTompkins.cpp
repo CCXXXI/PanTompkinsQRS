@@ -411,19 +411,20 @@ class PanTompkins {
 
 std::optional<PanTompkins> p;
 
+// The algorithm sometimes outputs a peak multiple times.
+// This is a simple fix to avoid that.
+static int min_samples_between_qrs;
+
 void init(int fs) {
   if (p && p->fs == fs) return;
   p.emplace(fs);
+
+  static constexpr int max_heart_rate = 220;
+  min_samples_between_qrs = fs * 60 / max_heart_rate;
 }
 
 bool panTompkins(float sample) {
-  // The algorithm sometimes outputs a peak multiple times.
-  // This is a simple fix to avoid that.
   static int samples_since_last_qrs = std::numeric_limits<int>::max() / 2;
-
-  // With fs=125, this is 80ms.
-  // Two QRSs in 80ms means at least 750bpm. That's impossible.
-  static constexpr int min_samples_between_qrs = 10;
 
   if (p->panTompkins(sample) &&
       samples_since_last_qrs > min_samples_between_qrs) {
