@@ -1,5 +1,6 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <limits>
 
 #include "panTompkins.h"
 
