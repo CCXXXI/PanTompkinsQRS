@@ -5,10 +5,10 @@
 #include "../src/panTompkins.h"
 
 TEST_CASE("test_PanTompkinsQRS", "[PanTompkinsQRS]") {
-  std::ifstream in("../assets/ecg_data/assets/data.json");
+  std::ifstream in("./assets/ecg_data/assets/data.json");
   auto points = nlohmann::json::parse(in);
 
-  std::ifstream out("../assets/output.txt");
+  std::ifstream out("./assets/output.txt");
 
   init(125);
 
