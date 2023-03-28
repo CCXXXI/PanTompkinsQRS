@@ -1,5 +1,6 @@
 #include "panTompkins.h"
 
+#include <limits>
 #include <optional>
 #include <vector>
 

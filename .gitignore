@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/clion,c++
-# Edit at https://www.toptal.com/developers/gitignore?templates=clion,c++
+# Created by https://www.toptal.com/developers/gitignore/api/c++,clion,vcpkg
+# Edit at https://www.toptal.com/developers/gitignore?templates=c++,clion,vcpkg
 
 ### C++ ###
 # Prerequisites
@@ -148,4 +148,12 @@ fabric.properties
 # https://plugins.jetbrains.com/plugin/8053-azure-toolkit-for-intellij
 .idea/**/azureSettings.xml
 
-# End of https://www.toptal.com/developers/gitignore/api/clion,c++
+### vcpkg ###
+# Vcpkg
+
+vcpkg-manifest-install.log
+
+## Manifest Mode
+vcpkg_installed/
+
+# End of https://www.toptal.com/developers/gitignore/api/c++,clion,vcpkg
