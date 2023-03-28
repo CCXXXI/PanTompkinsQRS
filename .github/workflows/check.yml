@@ -24,6 +24,7 @@ jobs:
       - run: cmake -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=PROFILE .
       - run: cmake --build .
       - run: ./PanTompkinsQRS_tests
+        working-directory: tests/
       - run: gcovr --filter src/ --exclude-throw-branches --cobertura coverage.xml
       - uses: codecov/codecov-action@v3
         with:
