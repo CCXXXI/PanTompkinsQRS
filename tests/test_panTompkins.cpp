@@ -20,4 +20,8 @@ TEST_CASE("test_PanTompkinsQRS", "[PanTompkinsQRS]") {
 
     REQUIRE(actual == expected);
   }
+
+  // out should be empty now
+  out.ignore(1, '\n');
+  REQUIRE(out.get() == EOF);
 }
