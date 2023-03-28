@@ -1,0 +1,30 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions/cache@v3
+        with:
+          path: /home/runner/.cache/vcpkg/archives
+          key: vcpkg-${{ hashFiles('vcpkg.json') }}
+      - uses: aminya/setup-cpp@v1
+        with:
+          compiler: gcc
+          cmake: true
+          gcovr: true
+
+      - run: cmake -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=PROFILE .
+      - run: cmake --build .
+      - run: ./PanTompkinsQRS_tests
+      - run: gcovr --filter src/ --exclude-throw-branches --cobertura coverage.xml
+      - uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
