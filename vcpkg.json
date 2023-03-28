@@ -1,7 +1,4 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
-  "dependencies": [
-    "catch2",
-    "nlohmann-json"
-  ]
+  "dependencies": ["catch2", "nlohmann-json"]
 }
